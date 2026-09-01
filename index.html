@@ -83,7 +83,18 @@
   <p id="authError" class="err" style="display:none;"></p>
   <p id="authOk" class="ok" style="display:none;"></p>
   <button id="authSubmitBtn" class="primary" style="width:100%; margin-top:10px;">Sign in</button>
+  <button id="forgotPasswordBtn" style="width:100%; margin-top:8px; font-size:12px; height:32px;">Forgot password?</button>
   <p style="font-size:12px; color:var(--text-secondary); margin-top:1rem;">Each person creates their own account — your data stays private to you.</p>
+  <p style="font-size:12px; margin-top:0.5rem;"><a href="privacy.html" target="_blank" style="color:var(--text-secondary);">Privacy policy</a></p>
+</div>
+
+<div id="resetScreen" style="display:none;">
+  <h1>Reset your password</h1>
+  <input type="email" id="resetEmail" placeholder="Email" style="width:100%; margin-bottom:8px;" />
+  <p id="resetError" class="err" style="display:none;"></p>
+  <p id="resetOk" class="ok" style="display:none;"></p>
+  <button id="sendResetBtn" class="primary" style="width:100%;">Send reset link</button>
+  <button id="backToSigninBtn" style="width:100%; margin-top:8px; font-size:12px; height:32px;">Back to sign in</button>
 </div>
 
 <div id="setupScreen" style="display:none;">
@@ -99,6 +110,12 @@
   <h1>Set up your goals</h1>
   <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
     <input type="text" id="obName" placeholder="Your name" />
+    <label style="font-size:13px; color:var(--text-secondary);">Units
+      <select id="obUnits" style="width:100%; margin-top:4px;">
+        <option value="metric" selected>Metric (kg, cm)</option>
+        <option value="imperial">Imperial (lb, in)</option>
+      </select>
+    </label>
     <input type="text" inputmode="decimal" id="obWeight" placeholder="Current weight (kg)" />
     <input type="number" id="obHeight" placeholder="Height (cm)" />
     <input type="number" id="obAge" placeholder="Age" />
@@ -136,12 +153,21 @@
 </div>
 
 <div id="mainApp" style="display:none;">
-<div class="row-between" style="margin-bottom:1rem;">
+<div class="row-between" style="margin-bottom:4px;">
   <span style="font-size:15px; font-weight:600;" id="profileLabel">Hi</span>
   <div style="display:flex; gap:8px;">
     <button id="showTourBtn" style="height:32px; font-size:12px; padding:0 10px;">Tour</button>
     <button id="logoutBtn" style="height:32px; font-size:12px; padding:0 10px;">Log out</button>
   </div>
+</div>
+<p id="contextLine" style="font-size:13px; color:var(--text-secondary); margin:0 0 1rem;">&nbsp;</p>
+
+<div id="recapCard" class="panel" style="display:none; margin-bottom:1rem;">
+  <div class="row-between" style="margin-bottom:6px;">
+    <span style="font-size:14px; font-weight:600;">Last week's recap</span>
+    <button id="dismissRecapBtn" style="width:28px; height:28px; padding:0;">x</button>
+  </div>
+  <div id="recapContent" style="font-size:13px; color:var(--text-secondary);"></div>
 </div>
 
 <div class="grid2" style="margin-bottom:1rem;">
@@ -170,8 +196,14 @@
 <button id="toggleGoalsBtn" style="width:100%; margin-bottom:1.5rem; font-size:12px; height:32px;">Edit goals</button>
 <div id="goalsPanel" style="display:none; margin-bottom:1.5rem;">
   <div class="panel">
+    <label style="font-size:13px; color:var(--text-secondary); display:block; margin-bottom:8px;">Units
+      <select id="goalUnits" style="width:100%; margin-top:4px;">
+        <option value="metric">Metric (kg, cm)</option>
+        <option value="imperial">Imperial (lb, in)</option>
+      </select>
+    </label>
     <div class="row" style="margin-bottom:8px;">
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Height (cm)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalHeightLabel">Height (cm)
         <input type="number" id="goalHeight" style="width:100%; margin-top:4px;" />
       </label>
       <label style="font-size:13px; color:var(--text-secondary); flex:1;">Age
@@ -196,10 +228,10 @@
       </label>
     </div>
     <div class="row" style="margin-bottom:8px;">
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Goal weight (kg)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalWeightLabel">Goal weight (kg)
         <input type="text" inputmode="decimal" id="goalWeight" style="width:100%; margin-top:4px;" />
       </label>
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Target rate (kg/week)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalRateLabel">Target rate (kg/week)
         <input type="text" inputmode="decimal" id="goalRate" style="width:100%; margin-top:4px;" />
       </label>
     </div>
@@ -215,6 +247,12 @@
       </select>
     </label>
     <button id="saveGoalsBtn" class="primary" style="width:100%;">Save goals</button>
+    <button id="deleteAccountBtn" style="width:100%; margin-top:16px; font-size:12px; height:32px; color:var(--text-danger); border-color:var(--text-danger);">Delete my account</button>
+    <div id="deleteConfirmPanel" style="display:none; margin-top:8px;">
+      <p style="font-size:12px; color:var(--text-danger); margin:0 0 8px;">This permanently deletes your account and all your data (weight, food, training logs). This cannot be undone. Type DELETE below to confirm.</p>
+      <input type="text" id="deleteConfirmInput" placeholder="Type DELETE" style="width:100%; margin-bottom:8px;" />
+      <button id="confirmDeleteBtn" style="width:100%; color:var(--text-danger); border-color:var(--text-danger);">Permanently delete my account</button>
+    </div>
   </div>
 </div>
 
@@ -347,6 +385,18 @@
 
   function todayStr(){ return new Date().toISOString().slice(0,10); }
   function parseDecimal(str){ if (str == null) return NaN; return parseFloat(String(str).replace(',', '.')); }
+
+  // ---------- Units conversion (all data always stored in kg/cm) ----------
+  var KG_PER_LB = 0.45359237, CM_PER_IN = 2.54;
+  function isImperial(){ return profile && profile.units === 'imperial'; }
+  function weightUnitLabel(){ return isImperial() ? 'lb' : 'kg'; }
+  function heightUnitLabel(){ return isImperial() ? 'in' : 'cm'; }
+  function toDisplayWeight(kg){ return isImperial() ? (kg/KG_PER_LB) : kg; }
+  function toStorageWeight(val){ var n=parseDecimal(val); if(isNaN(n)) return NaN; return isImperial() ? n*KG_PER_LB : n; }
+  function toDisplayHeight(cm){ return isImperial() ? (cm/CM_PER_IN) : cm; }
+  function toStorageHeight(val){ var n=parseFloat(val); if(isNaN(n)) return NaN; return isImperial() ? n*CM_PER_IN : n; }
+  function toDisplayRate(kgPerWeek){ return isImperial() ? (kgPerWeek/KG_PER_LB) : kgPerWeek; }
+  function toStorageRate(val){ var n=parseDecimal(val); if(isNaN(n)) return NaN; return isImperial() ? n*KG_PER_LB : n; }
   function fmtShortDate(d){ return new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
   function weekDates(){
     var startDay = (profile && profile.week_start_day != null) ? profile.week_start_day : 1;
@@ -363,6 +413,54 @@
     var start = new Date(d); start.setDate(d.getDate()-diff);
     return start.toISOString().slice(0,10);
   }
+  function previousWeekDates(){
+    var cur = weekDates();
+    var start = new Date(cur[0]+'T00:00:00'); start.setDate(start.getDate()-7);
+    var out=[]; for(var i=0;i<7;i++){ var d=new Date(start); d.setDate(start.getDate()+i); out.push(d.toISOString().slice(0,10)); }
+    return out;
+  }
+  var recapDismissedFor = null;
+  async function renderRecapCard(){
+    var wDates = weekDates();
+    var todayIdx = wDates.indexOf(todayStr());
+    var card = document.getElementById('recapCard');
+    if (todayIdx < 0 || todayIdx > 1) { card.style.display='none'; return; }
+    var thisWeekStart = wDates[0];
+    if (recapDismissedFor === null) {
+      recapDismissedFor = await kvGet('recap-dismissed-week', '');
+    }
+    if (recapDismissedFor === thisWeekStart) { card.style.display='none'; return; }
+
+    var prevDates = previousWeekDates();
+    var totalCal = 0, loggedDays = 0, totalSteps = 0, sessionCount = 0;
+    prevDates.forEach(function(d){
+      var items = foodLog[d] || [];
+      var sum = items.reduce(function(a,it){return a+it.cal*it.qty;},0);
+      if (sum > 0) { totalCal += sum; loggedDays++; }
+      if (stepsLog[d]) totalSteps += stepsLog[d];
+    });
+    var prevStart = new Date(prevDates[0]+'T00:00:00');
+    var prevEnd = new Date(prevDates[6]+'T23:59:59');
+    sessionLog.forEach(function(s){
+      var sd = new Date(s.date);
+      if (sd >= prevStart && sd <= prevEnd) sessionCount++;
+    });
+    if (loggedDays === 0 && totalSteps === 0 && sessionCount === 0) { card.style.display='none'; return; }
+
+    var avgCal = loggedDays ? Math.round(totalCal/loggedDays) : 0;
+    var avgSteps = Math.round(totalSteps/7);
+    document.getElementById('recapContent').innerHTML =
+      (avgCal ? 'Avg calories: <b style="color:var(--text-primary);">'+avgCal+' kcal/day</b><br>' : '') +
+      'Avg steps: <b style="color:var(--text-primary);">'+avgSteps+'/day</b><br>' +
+      'Training sessions: <b style="color:var(--text-primary);">'+sessionCount+'</b>';
+    card.style.display = 'block';
+  }
+  document.getElementById('dismissRecapBtn').addEventListener('click', async function(){
+    var thisWeekStart = weekDates()[0];
+    recapDismissedFor = thisWeekStart;
+    await kvSet('recap-dismissed-week', thisWeekStart);
+    document.getElementById('recapCard').style.display = 'none';
+  });
   function dayNamesForStart(){
     var ALL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var startDay = (profile && profile.week_start_day != null) ? profile.week_start_day : 1;
@@ -435,10 +533,24 @@
     document.getElementById('authSubmitBtn').textContent = 'Create account';
   });
 
-  function showSetup(){ document.getElementById('setupScreen').style.display='block'; document.getElementById('authScreen').style.display='none'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='none'; }
-  function showAuth(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='block'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='none'; }
-  function showOnboard(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='none'; document.getElementById('onboardScreen').style.display='block'; document.getElementById('mainApp').style.display='none'; }
-  function showApp(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='none'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='block'; }
+  function showSetup(){ document.getElementById('setupScreen').style.display='block'; document.getElementById('authScreen').style.display='none'; document.getElementById('resetScreen').style.display='none'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='none'; }
+  function showAuth(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='block'; document.getElementById('resetScreen').style.display='none'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='none'; }
+  function showReset(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='none'; document.getElementById('resetScreen').style.display='block'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='none'; }
+  function showOnboard(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='none'; document.getElementById('resetScreen').style.display='none'; document.getElementById('onboardScreen').style.display='block'; document.getElementById('mainApp').style.display='none'; }
+  function showApp(){ document.getElementById('setupScreen').style.display='none'; document.getElementById('authScreen').style.display='none'; document.getElementById('resetScreen').style.display='none'; document.getElementById('onboardScreen').style.display='none'; document.getElementById('mainApp').style.display='block'; }
+
+  document.getElementById('forgotPasswordBtn').addEventListener('click', function(){ showReset(); });
+  document.getElementById('backToSigninBtn').addEventListener('click', function(){ showAuth(); });
+  document.getElementById('sendResetBtn').addEventListener('click', async function(){
+    var email = document.getElementById('resetEmail').value.trim();
+    var err = document.getElementById('resetError'), ok = document.getElementById('resetOk');
+    err.style.display='none'; ok.style.display='none';
+    if (!email) { err.textContent='Enter your email'; err.style.display='block'; return; }
+    var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    if (res.error) { err.textContent = res.error.message; err.style.display='block'; return; }
+    ok.textContent = 'Check your email for a reset link. If it does not arrive within a few minutes, check your spam folder.';
+    ok.style.display='block';
+  });
 
   document.getElementById('saveSetupBtn').addEventListener('click', function(){
     var url = document.getElementById('supaUrl').value.trim();
@@ -462,7 +574,7 @@
       var res = await sb.auth.signUp({ email: email, password: pass });
       if (res.error) { err.textContent = res.error.message; err.style.display='block'; return; }
       if (res.data.session) { user = res.data.user; await afterLogin(); }
-      else { ok.textContent = 'Check your email to confirm, then sign in.'; ok.style.display='block'; }
+      else { ok.textContent = 'Almost there — check your inbox for a confirmation email and click the link, then come back here and sign in. Not seeing it after a few minutes? Check your spam or junk folder.'; ok.style.display='block'; }
     } else {
       var res2 = await sb.auth.signInWithPassword({ email: email, password: pass });
       if (res2.error) { err.textContent = res2.error.message; err.style.display='block'; return; }
@@ -506,23 +618,43 @@
     if (!seenTour) { setTimeout(startTour, 500); }
   }
 
+  document.getElementById('obUnits').addEventListener('change', function(){
+    var imp = this.value === 'imperial';
+    document.getElementById('obWeight').placeholder = imp ? 'Current weight (lb)' : 'Current weight (kg)';
+    document.getElementById('obHeight').placeholder = imp ? 'Height (in)' : 'Height (cm)';
+    document.getElementById('obGoal').placeholder = imp ? 'Goal weight (lb)' : 'Goal weight (kg)';
+    document.getElementById('obRate').placeholder = imp ? 'Target lb lost/week (e.g. 1)' : 'Target kg lost/week (e.g. 0.5)';
+  });
+
   document.getElementById('obSaveBtn').addEventListener('click', async function(){
     var name = document.getElementById('obName').value.trim();
-    var w = parseDecimal(document.getElementById('obWeight').value);
-    var h = parseFloat(document.getElementById('obHeight').value);
+    var units = document.getElementById('obUnits').value;
+    var imp = units === 'imperial';
+    var wRaw = parseDecimal(document.getElementById('obWeight').value);
+    var hRaw = parseFloat(document.getElementById('obHeight').value);
     var age = parseInt(document.getElementById('obAge').value);
     var sex = document.getElementById('obSex').value;
     var activityMult = parseFloat(document.getElementById('obActivity').value);
-    var goal = parseDecimal(document.getElementById('obGoal').value);
-    var rate = parseDecimal(document.getElementById('obRate').value);
+    var goalRaw = parseDecimal(document.getElementById('obGoal').value);
+    var rateRaw = parseDecimal(document.getElementById('obRate').value);
     var weekStart = parseInt(document.getElementById('obWeekStart').value);
     var err = document.getElementById('obError');
-    if (!name || !w || !h || !age || !goal || !rate) { err.style.display='block'; return; }
+    // Convert to metric for storage/validation, regardless of what was typed.
+    var w = imp ? wRaw*KG_PER_LB : wRaw;
+    var h = imp ? hRaw*CM_PER_IN : hRaw;
+    var goal = imp ? goalRaw*KG_PER_LB : goalRaw;
+    var rate = imp ? rateRaw*KG_PER_LB : rateRaw;
+    if (!name) { err.textContent='Enter your name'; err.style.display='block'; return; }
+    if (!w || w<30 || w>300) { err.textContent='Enter a realistic current weight'; err.style.display='block'; return; }
+    if (!h || h<100 || h>250) { err.textContent='Enter a realistic height'; err.style.display='block'; return; }
+    if (!age || age<13 || age>100) { err.textContent='Enter a realistic age (13-100)'; err.style.display='block'; return; }
+    if (!goal || goal<30 || goal>300) { err.textContent='Enter a realistic goal weight'; err.style.display='block'; return; }
+    if (!rate || rate<=0 || rate>2) { err.textContent='Enter a realistic weekly rate'; err.style.display='block'; return; }
     err.style.display='none';
 
     var calT = calcCalTarget(w, h, age, sex, activityMult, rate);
 
-    var newProfile = { user_id: user.id, display_name: name, height_cm: h, age: age, sex: sex, activity_multiplier: activityMult, goal_weight: goal, rate_kg_per_week: rate, cal_target: calT, macros_custom: false, week_start_day: weekStart };
+    var newProfile = { user_id: user.id, display_name: name, height_cm: h, age: age, sex: sex, activity_multiplier: activityMult, goal_weight: goal, rate_kg_per_week: rate, cal_target: calT, macros_custom: false, week_start_day: weekStart, units: units };
     var ins = await sb.from('profiles').insert(newProfile).select().maybeSingle();
     if (ins.error) { err.textContent = ins.error.message; err.style.display='block'; return; }
     profile = ins.data;
@@ -538,37 +670,70 @@
     setTimeout(startTour, 500);
   });
 
+  function updateGoalsUnitLabels(){
+    var imp = document.getElementById('goalUnits').value === 'imperial';
+    document.getElementById('goalHeightLabel').firstChild.textContent = imp ? 'Height (in)' : 'Height (cm)';
+    document.getElementById('goalWeightLabel').firstChild.textContent = imp ? 'Goal weight (lb)' : 'Goal weight (kg)';
+    document.getElementById('goalRateLabel').firstChild.textContent = imp ? 'Target rate (lb/week)' : 'Target rate (kg/week)';
+  }
+  document.getElementById('goalUnits').addEventListener('change', updateGoalsUnitLabels);
+
   document.getElementById('toggleGoalsBtn').addEventListener('click', function(){
     var p = document.getElementById('goalsPanel');
     var open = p.style.display === 'block';
     p.style.display = open ? 'none' : 'block';
     if (!open) {
-      document.getElementById('goalHeight').value = profile.height_cm || '';
+      var units = profile.units || 'metric';
+      var imp = units === 'imperial';
+      document.getElementById('goalUnits').value = units;
+      updateGoalsUnitLabels();
+      document.getElementById('goalHeight').value = profile.height_cm ? (imp ? (profile.height_cm/CM_PER_IN).toFixed(1) : Math.round(profile.height_cm)) : '';
       document.getElementById('goalAge').value = profile.age || '';
       document.getElementById('goalSex').value = profile.sex || 'male';
       document.getElementById('goalActivity').value = profile.activity_multiplier || 1.55;
-      document.getElementById('goalWeight').value = profile.goal_weight || '';
-      document.getElementById('goalRate').value = profile.rate_kg_per_week || '';
+      document.getElementById('goalWeight').value = profile.goal_weight ? (imp ? (profile.goal_weight/KG_PER_LB).toFixed(1) : profile.goal_weight.toFixed(1)) : '';
+      document.getElementById('goalRate').value = profile.rate_kg_per_week ? (imp ? (profile.rate_kg_per_week/KG_PER_LB).toFixed(2) : profile.rate_kg_per_week) : '';
       document.getElementById('goalWeekStart').value = (profile.week_start_day != null) ? profile.week_start_day : 1;
     }
   });
 
   document.getElementById('saveGoalsBtn').addEventListener('click', async function(){
-    var h = parseFloat(document.getElementById('goalHeight').value) || profile.height_cm;
+    var units = document.getElementById('goalUnits').value;
+    var imp = units === 'imperial';
+    var hRaw = parseFloat(document.getElementById('goalHeight').value);
+    var goalRaw = parseDecimal(document.getElementById('goalWeight').value);
+    var rateRaw = parseDecimal(document.getElementById('goalRate').value);
+    var h = (!isNaN(hRaw)) ? (imp ? hRaw*CM_PER_IN : hRaw) : profile.height_cm;
     var age = parseInt(document.getElementById('goalAge').value) || profile.age;
     var sex = document.getElementById('goalSex').value;
     var activityMult = parseFloat(document.getElementById('goalActivity').value);
-    var goal = parseDecimal(document.getElementById('goalWeight').value) || profile.goal_weight;
-    var rate = parseDecimal(document.getElementById('goalRate').value) || profile.rate_kg_per_week;
+    var goal = (!isNaN(goalRaw)) ? (imp ? goalRaw*KG_PER_LB : goalRaw) : profile.goal_weight;
+    var rate = (!isNaN(rateRaw)) ? (imp ? rateRaw*KG_PER_LB : rateRaw) : profile.rate_kg_per_week;
     var weekStart = parseInt(document.getElementById('goalWeekStart').value);
     var w = weightLog.length ? weightLog[weightLog.length-1].kg : goal;
     var calT = calcCalTarget(w, h, age, sex, activityMult, rate);
-    profile.height_cm = h; profile.age = age; profile.sex = sex; profile.activity_multiplier = activityMult; profile.goal_weight = goal; profile.rate_kg_per_week = rate; profile.cal_target = calT; profile.week_start_day = weekStart;
-    await sb.from('profiles').update({ height_cm:h, age:age, sex:sex, activity_multiplier:activityMult, goal_weight:goal, rate_kg_per_week:rate, cal_target:calT, week_start_day:weekStart }).eq('user_id', user.id);
+    profile.height_cm = h; profile.age = age; profile.sex = sex; profile.activity_multiplier = activityMult; profile.goal_weight = goal; profile.rate_kg_per_week = rate; profile.cal_target = calT; profile.week_start_day = weekStart; profile.units = units;
+    await sb.from('profiles').update({ height_cm:h, age:age, sex:sex, activity_multiplier:activityMult, goal_weight:goal, rate_kg_per_week:rate, cal_target:calT, week_start_day:weekStart, units:units }).eq('user_id', user.id);
     target = calT;
     document.getElementById('targetInput').value = target;
     document.getElementById('goalsPanel').style.display = 'none';
     render();
+  });
+
+  document.getElementById('deleteAccountBtn').addEventListener('click', function(){
+    var p = document.getElementById('deleteConfirmPanel');
+    p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+  });
+  document.getElementById('confirmDeleteBtn').addEventListener('click', async function(){
+    var input = document.getElementById('deleteConfirmInput');
+    if (input.value.trim() !== 'DELETE') { input.style.borderColor = 'var(--text-danger)'; return; }
+    try {
+      var res = await sb.rpc('delete_own_account');
+      if (res.error) { alert('Could not delete account: ' + res.error.message); return; }
+    } catch(e) { alert('Could not delete account. Please try again.'); return; }
+    await sb.auth.signOut();
+    user = null; profile = null;
+    showAuth();
   });
 
   // ---------- Data loading ----------
@@ -589,7 +754,19 @@
     var greetHour = new Date().getHours();
     var greeting = greetHour < 5 ? 'Late night' : greetHour < 12 ? 'Morning' : greetHour < 18 ? 'Afternoon' : 'Evening';
     document.getElementById('profileLabel').textContent = greeting + ', ' + profile.display_name;
-    document.getElementById('stat-goal').textContent = profile.goal_weight.toFixed(1) + ' kg';
+    document.getElementById('weightInput').placeholder = isImperial() ? 'Log weight (lb)' : 'Log weight (kg)';
+
+    var ctxEl = document.getElementById('contextLine');
+    if (weightLog.length) {
+      var lastWeighIn = new Date(weightLog[weightLog.length-1].date);
+      var daysSince = Math.floor((new Date(todayStr()+'T00:00:00') - new Date(lastWeighIn.toISOString().slice(0,10)+'T00:00:00')) / 86400000);
+      if (daysSince <= 0) ctxEl.textContent = 'Weighed in today';
+      else if (daysSince === 1) ctxEl.textContent = 'Weighed in yesterday';
+      else ctxEl.textContent = daysSince + ' days since your last weigh-in';
+    } else { ctxEl.textContent = '\u00a0'; }
+
+    renderRecapCard();
+    document.getElementById('stat-goal').textContent = toDisplayWeight(profile.goal_weight).toFixed(1) + ' ' + weightUnitLabel();
     populateActivitySelects();
   }
 
@@ -656,9 +833,9 @@
 
   function render(){
     var current = weightLog.length ? weightLog[weightLog.length-1].kg : profile.goal_weight;
-    document.getElementById('stat-current').textContent = current.toFixed(1)+' kg';
+    document.getElementById('stat-current').textContent = toDisplayWeight(current).toFixed(1)+' '+weightUnitLabel();
     var togo = Math.max(0, current - profile.goal_weight);
-    document.getElementById('stat-togo').textContent = togo.toFixed(1)+' kg';
+    document.getElementById('stat-togo').textContent = toDisplayWeight(togo).toFixed(1)+' '+weightUnitLabel();
     document.getElementById('stat-weeks').textContent = togo>0 ? Math.ceil(togo/(profile.rate_kg_per_week||0.5)) : 0;
 
     var trendEl = document.getElementById('stat-current-trend');
@@ -670,9 +847,10 @@
       }
       if (!priorEntry) priorEntry = weightLog[0];
       var delta = current - priorEntry.kg;
+      var deltaDisp = toDisplayWeight(Math.abs(delta)).toFixed(1);
       if (Math.abs(delta) < 0.05) { trendEl.textContent = 'steady vs last week'; trendEl.style.color = 'var(--text-secondary)'; }
-      else if (delta < 0) { trendEl.textContent = '\u2193 ' + Math.abs(delta).toFixed(1) + 'kg vs last week'; trendEl.style.color = 'var(--text-success)'; }
-      else { trendEl.textContent = '\u2191 ' + delta.toFixed(1) + 'kg vs last week'; trendEl.style.color = 'var(--text-secondary)'; }
+      else if (delta < 0) { trendEl.textContent = '\u2193 ' + deltaDisp + weightUnitLabel() + ' vs last week'; trendEl.style.color = 'var(--text-success)'; }
+      else { trendEl.textContent = '\u2191 ' + deltaDisp + weightUnitLabel() + ' vs last week'; trendEl.style.color = 'var(--text-secondary)'; }
     } else {
       trendEl.textContent = '\u00a0';
     }
@@ -688,8 +866,8 @@
     }
 
     var labels = weightLog.map(function(e){ return fmtShortDate(e.date); });
-    var data = weightLog.map(function(e){ return e.kg; });
-    var goalLine = weightLog.map(function(){ return profile.goal_weight; });
+    var data = weightLog.map(function(e){ return toDisplayWeight(e.kg); });
+    var goalLine = weightLog.map(function(){ return toDisplayWeight(profile.goal_weight); });
     var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     var tickColor = isDark ? '#9A9690' : '#6B6660';
     if (chart) { chart.data.labels=labels; chart.data.datasets[0].data=data; chart.data.datasets[1].data=goalLine; chart.update(); }
@@ -887,7 +1065,8 @@
   document.getElementById('resetMacroBtn').addEventListener('click', async function(){ macrosCustom=false; await sb.from('profiles').update({macros_custom:false}).eq('user_id',user.id); render(); });
 
   document.getElementById('logWeightBtn').addEventListener('click', async function(){
-    var input=document.getElementById('weightInput'); var val=parseDecimal(input.value);
+    var input=document.getElementById('weightInput'); var raw=parseDecimal(input.value);
+    var val = isImperial() ? raw*KG_PER_LB : raw;
     if (!val || val<30 || val>300) { input.style.borderColor='var(--text-danger)'; return; }
     input.style.borderColor=''; weightLog.push({date:selectedDate+'T12:00:00.000Z', kg:val}); input.value='';
     weightLog.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
@@ -998,6 +1177,13 @@
   function startTour(){ showTourStep(0); }
 
   document.getElementById('showTourBtn').addEventListener('click', function(){ startTour(); });
+
+  window.addEventListener('beforeunload', function(e){
+    var onboardVisible = document.getElementById('onboardScreen').style.display === 'block';
+    if (!onboardVisible) return;
+    var hasInput = document.getElementById('obName').value.trim() || document.getElementById('obWeight').value;
+    if (hasInput) { e.preventDefault(); e.returnValue = ''; }
+  });
 
   function init2(){
     var savedUrl = localStorage.getItem('recomp:supabase-url');
