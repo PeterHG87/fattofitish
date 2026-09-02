@@ -247,12 +247,6 @@
       </select>
     </label>
     <button id="saveGoalsBtn" class="primary" style="width:100%;">Save goals</button>
-    <button id="deleteAccountBtn" style="width:100%; margin-top:16px; font-size:12px; height:32px; color:var(--text-danger); border-color:var(--text-danger);">Delete my account</button>
-    <div id="deleteConfirmPanel" style="display:none; margin-top:8px;">
-      <p style="font-size:12px; color:var(--text-danger); margin:0 0 8px;">This permanently deletes your account and all your data (weight, food, training logs). This cannot be undone. Type DELETE below to confirm.</p>
-      <input type="text" id="deleteConfirmInput" placeholder="Type DELETE" style="width:100%; margin-bottom:8px;" />
-      <button id="confirmDeleteBtn" style="width:100%; color:var(--text-danger); border-color:var(--text-danger);">Permanently delete my account</button>
-    </div>
   </div>
 </div>
 
@@ -308,10 +302,16 @@
 </div>
 
 <h3 id="tourSearchFood">Search food</h3>
-<div style="position:relative; margin-bottom:8px;">
-  <input type="text" id="foodSearch" placeholder="Search your food list..." style="width:100%;" autocomplete="off" />
-  <div id="searchResults" class="search-results"></div>
+<div class="row" style="margin-bottom:8px; align-items:flex-start;">
+  <div style="position:relative; flex:1;">
+    <input type="text" id="foodSearch" placeholder="Search your food list..." style="width:100%;" autocomplete="off" />
+    <div id="searchResults" class="search-results"></div>
+  </div>
+  <button id="scanBarcodeBtn" style="width:44px; height:40px; padding:0; flex-shrink:0;" aria-label="Scan barcode">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="15" y1="8" x2="15" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+  </button>
 </div>
+<p id="barcodeHint" style="display:none; font-size:12px; color:var(--text-secondary); margin:-4px 0 8px;">Values shown are per 100g — adjust quantity or amounts to match your actual serving.</p>
 
 <h3 id="addFoodHeading" style="margin-top:1rem;">Add to today's log</h3>
 <div class="row" style="margin-bottom:8px;">
@@ -357,6 +357,14 @@
 <div class="row">
   <select id="addActivitySelect" style="flex:1;"></select>
   <button id="addActivityBtn" style="width:84px;">+ Add</button>
+</div>
+
+<h3 style="margin-top:2rem; color:var(--text-secondary);">Account</h3>
+<button id="showDeleteAccountBtn" style="width:100%; font-size:12px; height:32px;">Delete my account</button>
+<div id="deleteConfirmPanel" style="display:none; margin-top:8px;">
+  <p style="font-size:12px; color:var(--text-danger); margin:0 0 8px;">This permanently deletes your account and all your data (weight, food, training logs). This cannot be undone. Type DELETE below to confirm.</p>
+  <input type="text" id="deleteConfirmInput" placeholder="Type DELETE" style="width:100%; margin-bottom:8px;" />
+  <button id="confirmDeleteBtn" style="width:100%; color:var(--text-danger); border-color:var(--text-danger);">Permanently delete my account</button>
 </div>
 </div>
 
@@ -720,7 +728,7 @@
     render();
   });
 
-  document.getElementById('deleteAccountBtn').addEventListener('click', function(){
+  document.getElementById('showDeleteAccountBtn').addEventListener('click', function(){
     var p = document.getElementById('deleteConfirmPanel');
     p.style.display = (p.style.display === 'block') ? 'none' : 'block';
   });
@@ -1072,6 +1080,55 @@
     weightLog.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
     await kvSet('weight-log', weightLog); render();
   });
+
+  // ---------- Barcode scanning (native app only, no-op gracefully on the website) ----------
+  document.getElementById('scanBarcodeBtn').addEventListener('click', scanBarcodeForFood);
+
+  async function scanBarcodeForFood(){
+    var plugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorBarcodeScanner;
+    if (!plugin) {
+      alert('Barcode scanning only works in the app, not the website.');
+      return;
+    }
+    var errEl = document.getElementById('foodError');
+    errEl.style.display = 'none';
+    try {
+      var result = await plugin.scanBarcode({ hint: 17 }); // 17 = ALL formats
+      var barcode = result && result.ScanResult;
+      if (!barcode) return;
+      await lookupBarcodeAndFillForm(barcode);
+    } catch(e) {
+      // User cancelled the scan or camera permission was denied -- not an error to show.
+    }
+  }
+
+  async function lookupBarcodeAndFillForm(barcode){
+    var errEl = document.getElementById('foodError');
+    var hintEl = document.getElementById('barcodeHint');
+    try {
+      var res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(barcode) + '.json');
+      var data = await res.json();
+      if (data.status !== 1 || !data.product) {
+        errEl.textContent = 'No food found for that barcode. You can still add it manually below.';
+        errEl.style.display = 'block';
+        hintEl.style.display = 'none';
+        return;
+      }
+      var p = data.product;
+      var n = p.nutriments || {};
+      var name = p.product_name || p.generic_name || ('Scanned item ' + barcode);
+      document.getElementById('foodName').value = name;
+      document.getElementById('foodCal').value = Math.round(n['energy-kcal_100g'] || 0);
+      document.getElementById('foodProtein').value = Math.round((n['proteins_100g']||0)*10)/10;
+      document.getElementById('foodCarbs').value = Math.round((n['carbohydrates_100g']||0)*10)/10;
+      document.getElementById('foodFat').value = Math.round((n['fat_100g']||0)*10)/10;
+      document.getElementById('foodQty').value = 1;
+      hintEl.style.display = 'block';
+    } catch(e) {
+      errEl.textContent = 'Could not look up that barcode. Check your connection and try again.';
+      errEl.style.display = 'block';
+    }
+  }
 
   document.getElementById('addFoodBtn').addEventListener('click', async function(){
     var name=document.getElementById('foodName').value.trim();
