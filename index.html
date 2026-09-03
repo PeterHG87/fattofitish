@@ -23,6 +23,8 @@
     }
   }
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  html, body { overflow-x: hidden; overscroll-behavior-x: none; width: 100%; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text-primary); padding:1.25rem 1rem 3rem; padding-top:calc(1.25rem + env(safe-area-inset-top, 0px)); padding-bottom:calc(3rem + env(safe-area-inset-bottom, 0px)); max-width:480px; margin:0 auto; }
   h1 { font-size:20px; font-weight:600; margin:0 0 1.25rem; }
   h3 { font-size:15px; font-weight:600; margin:1.5rem 0 0.6rem; }
@@ -314,9 +316,12 @@
 <p id="barcodeHint" style="display:none; font-size:12px; color:var(--text-secondary); margin:-4px 0 8px;">Values shown are per 100g — adjust quantity or amounts to match your actual serving.</p>
 
 <h3 id="addFoodHeading" style="margin-top:1rem;">Add to today's log</h3>
-<div class="row" style="margin-bottom:8px;">
+<div class="row" style="margin-bottom:8px; align-items:center;">
   <input type="text" id="foodName" placeholder="Food name" style="flex:1;" />
-  <input type="number" id="foodQty" value="1" step="0.5" style="width:60px;" />
+  <input type="hidden" id="foodQty" value="1" />
+  <button id="qtyMinusBtn" style="width:36px; padding:0; flex-shrink:0;" aria-label="Decrease quantity">-</button>
+  <span id="foodQtyDisplay" style="min-width:36px; text-align:center; font-size:15px; font-weight:500;">1</span>
+  <button id="qtyPlusBtn" style="width:36px; padding:0; flex-shrink:0;" aria-label="Increase quantity">+</button>
 </div>
 <div class="row" style="margin-bottom:8px;">
   <input type="number" id="foodCal" placeholder="kcal each" style="flex:1;" />
@@ -373,7 +378,9 @@
 <script>
 (function() {
   var BASE_FOODS = [["1/2 Avocado", 120,1.5,6.4,11],["1/2 Portion Veg", 55,0,0,0],["Ale Pint", 250,0,0,0],["Almod Meringue Cake", 450,0,0,0],["Almond Milk 1 cup/carton", 60,1,1,2.5],["Alpro Soya - Chocolate (100ml)", 70,0,0,0],["Alpro Choc Yoghurt", 112,0,0,0],["Americano", 5,0.3,0.5,0],["Aubergine Fried", 75,0,0,0],["Apple", 95,0.5,25,0.3],["Baby Potato", 60,1.5,14,0.1],["Baked Beans Half-Tin", 164,0,0,0],["Banana", 115,1.3,29.3,0.4],["BBQ Ribs (100g)", 370,0,0,0],["Bell pepper", 30,1,7,0.2],["Blueberry Crumble (Serving)", 314,0,0,0],["Bottle of Coke", 240,0,60,0],["Breakfast", 300,0,0,0],["Bread & Butter & Jam", 120,0,0,0],["Burger", 300,0,0,0],["Butter - Tbspn", 102,0.1,0,11.5],["Croissant - Caffe Nero", 210,0,0,0],["Can of Coke", 135,0,34,0],["Carrot Cake - Espresso House", 400,0,0,0],["Carrot Cake Muffin - Espresso House", 428,6,65,16],["Cheese Doodles 100g", 520,0,0,0],["Chicken Broth", 260,0,0,0],["Chicken Fillet", 116,22,0,2.6],["Chicken Roasted Breast", 382,0,0,0],["Chicken Salad", 360,0,0,0],["Chicken Wok", 700,0,0,0],["Chilli Con Carne", 256,0,0,0],["Chips", 200,0,0,0],["Cider 330ml", 163,0,20,0],["Chocolate Milk", 209,8,26,8],["Chocolate 1 Square", 75,0,0,0],["Clementine", 47,0.8,12,0.2],["Cottage Cheese", 125,14,3.4,5.5],["Crepe", 450,0,0,0],["Crisps", 125,0,0,0],["Croissant (Large)", 277,0,0,0],["Custard (1 serving)", 116,0,0,0],["Dinner", 500,0,0,0],["Egg - Boiled", 74,6.3,0.6,5],["Egg - Fried", 90,6.3,0.4,6.8],["Egg - Poached", 75,6.3,0.4,5],["Egg - White", 17,3.6,0.2,0.1],["Espresso Martini", 230,0,0,0],["Fish Fried Picard", 207,0,0,0],["Flat White - Starbucks", 170,0,0,0],["Flat White - Espresso House", 104,0,0,0],["Gin & Tonic", 54,0,4,0],["Glass Red/White Wine", 125,0.1,4,0],["Green tea", 5,0,0,0],["Guinness", 125,0,10,0],["Halloumi 50g", 163,11,1,13],["Ham", 24,3.5,0.3,1],["Heineken Bottle", 137,0,11,0],["Homemade Ice-Cream", 100,0,0,0],["Honey teaspn", 21,0,5.7,0],["Hot Dog with Bun", 270,0,0,0],["Ice Cream Sandwich", 187,0,0,0],["Irish Coffee", 200,0,0,0],["Ketchup 1 tbsp", 20,0.2,4.5,0],["Lasagane - Courgette", 250,0,0,0],["Latte", 110,0,0,0],["Lunch", 400,0,0,0],["Magnum", 248,0,0,0],["Mayonaise Tbspn", 100,0.1,0.1,10],["Milk 3% 1 Cup", 103,8.2,12,3.4],["Milkshake McDonalds Medium", 356,0,0,0],["Mozzarella Stick", 90,6,3,6],["Orange", 50,1,12,0.1],["Orange Juice", 39,0.6,9,0.2],["Other", 220,0,0,0],["Pain Au Chocolate", 400,0,0,0],["Parmesan 100g", 431,38,4,29],["Pasta White 100g", 387,13,75,1.5],["Pasta Salad", 300,0,0,0],["Pear", 102,0.6,27.5,0.2],["Pint", 180,0,0,0],["Pizza Grandiosa (1/2)", 336,0,0,0],["Pizza Lidl", 315,0,0,0],["Poke Bowl", 600,0,0,0],["Porridge", 145,0,0,0],["Prosciutto 100g", 250,0,0,0],["Prosecco Glass", 90,0,2,0],["Protein Bar", 213,0,0,0],["Protein - Clear Whey Isolate", 82,20,0,0],["Protein Shake 35g (1 Serving)", 126,24,4,2],["Impact Whey Protein - Strawberry Cream (MyProtein)", 120,22,3,2],["Ramen Chicken", 483,0,0,0],["Salsa Serving", 40,0,0,0],["Shrimp", 40,8.5,0.2,0.3],["Side Salad", 200,0,0,0],["Slice of Cheese", 104,6,0.5,8.5],["Smoked Salmon 50g", 58,10.5,0,2],["Spicy Salmon Salad", 400,0,0,0],["Steak", 630,0,0,0],["Strawberry", 6,0.1,1.4,0],["Streaky Bacon 30g", 103,6,0.2,8.5],["Sweet Potato Roasted (300g)", 260,0,0,0],["Toast with Butter (1 Slice)", 130,0,0,0],["Tuna Can", 98,22,0,0.7],["Watermelon 100g", 30,0.6,7.6,0.2],["Weetabix 2 Biscuits", 136,4.5,26,1],["White Rice 1 Cup", 206,4.3,45,0.4],["Wine Glass", 123,0.1,4,0],["Yoghurt Activia - 1 Tub", 170,0,0,0]];
-  var STAPLE_FOODS = [["Chicken Breast (100g cooked)",165,31,0,3.6],["Chicken Thigh (100g cooked)",209,26,0,10.9],["Salmon (100g cooked)",208,20,0,13],["Cod Fillet (100g cooked)",105,23,0,0.9],["Tuna in Water (100g)",116,26,0,0.8],["Ground Beef 5% (100g cooked)",137,21,0,5],["Ground Beef 20% (100g cooked)",254,17,0,20],["Pork Chop (100g cooked)",231,25,0,14],["Bacon Rasher (1)",43,3,0.1,3.3],["Turkey Breast (100g)",135,30,0,1],["White Rice Cooked (1 cup)",205,4.3,45,0.4],["Brown Rice Cooked (1 cup)",216,5,45,1.8],["Quinoa Cooked (1 cup)",222,8,39,3.6],["Pasta Cooked (1 cup)",220,8,43,1.3],["Potato Baked (medium)",161,4.3,37,0.2],["Sweet Potato Baked (medium)",112,2,26,0.1],["Oats Dry (1/2 cup)",150,5,27,3],["Bread White (1 slice)",79,2.7,15,1],["Bread Wholemeal (1 slice)",82,4,13.8,1.1],["Bagel (1)",245,10,48,1.5],["Milk Whole (1 cup)",149,8,12,8],["Milk Skimmed (1 cup)",83,8.3,12,0.2],["Greek Yogurt Plain (170g)",100,17,6,0.7],["Yogurt Plain (1 cup)",149,8.5,11.4,8],["Cheddar Cheese (30g)",120,7,0.4,10],["Mozzarella (30g)",85,6.3,0.6,6.3],["Cottage Cheese Generic (100g)",98,11,3.4,4.3],["Butter Generic (1 tbsp)",102,0.1,0,11.5],["Olive Oil (1 tbsp)",119,0,0,13.5],["Peanut Butter (1 tbsp)",94,4,3,8],["Almonds (28g)",164,6,6,14],["Walnuts (28g)",185,4.3,3.9,18.5],["Broccoli (100g)",34,2.8,7,0.4],["Spinach (100g)",23,2.9,3.6,0.4],["Carrots (100g)",41,0.9,10,0.2],["Tomato (1 medium)",22,1.1,4.8,0.2],["Onion (1 medium)",44,1.2,10.3,0.1],["Avocado (whole)",240,3,12.8,22],["Apple Generic (medium)",95,0.5,25,0.3],["Banana Generic (medium)",105,1.3,27,0.4],["Orange Generic (medium)",62,1.2,15.4,0.2],["Strawberries (100g)",32,0.7,7.7,0.3],["Blueberries (100g)",57,0.7,14.5,0.3],["Lentils Cooked (1 cup)",230,17.9,40,0.8],["Chickpeas Cooked (1 cup)",269,14.5,45,4.2],["Black Beans Cooked (1 cup)",227,15.2,41,0.9],["Tofu (100g)",76,8,1.9,4.8],["Egg Large (1)",78,6.3,0.6,5.3],["Protein Powder (1 scoop)",120,24,3,1.5],["Protein Bar Generic",200,20,20,7],["Honey (1 tbsp)",64,0.1,17,0],["Pizza Slice Cheese",285,12,36,10],["French Fries Small",220,2.4,29,11],["Fried Chicken (1 piece)",320,22,10,21],["Sandwich Ham & Cheese",350,20,35,14],["Wrap Chicken",380,25,35,15],["Sushi Roll (8 pieces)",350,12,60,6],["Ramen Bowl",380,14,55,12],["Coffee Black",2,0.3,0,0],["Tea Black",2,0,0.7,0],["Soda Can",140,0,39,0],["Beer Generic (330ml)",150,1.6,13,0],["Wine Generic (150ml)",125,0.1,4,0],["Ice Cream Scoop",137,2.3,16,7],["Cookie (1)",150,1.5,20,7],["Croissant Generic (1)",230,5,26,12],["Blueberry Muffin",265,4,40,10],["Pancakes (2)",175,5,30,4]];
+  var STAPLE_FOODS = [["Chicken Breast (100g cooked)",165,31,0,3.6],["Chicken Thigh (100g cooked)",209,26,0,10.9],["Salmon (100g cooked)",208,20,0,13],["Cod Fillet (100g cooked)",105,23,0,0.9],["Tuna in Water (100g)",116,26,0,0.8],["Ground Beef 5% (100g cooked)",137,21,0,5],["Ground Beef 20% (100g cooked)",254,17,0,20],["Pork Chop (100g cooked)",231,25,0,14],["Bacon Rasher (1)",43,3,0.1,3.3],["Turkey Breast (100g)",135,30,0,1],["White Rice Cooked (1 cup)",205,4.3,45,0.4],["Brown Rice Cooked (1 cup)",216,5,45,1.8],["Quinoa Cooked (1 cup)",222,8,39,3.6],["Pasta Cooked (1 cup)",220,8,43,1.3],["Potato Baked (medium)",161,4.3,37,0.2],["Sweet Potato Baked (medium)",112,2,26,0.1],["Oats Dry (1/2 cup)",150,5,27,3],["Bread White (1 slice)",79,2.7,15,1],["Bread Wholemeal (1 slice)",82,4,13.8,1.1],["Bagel (1)",245,10,48,1.5],["Milk Whole (1 cup)",149,8,12,8],["Milk Skimmed (1 cup)",83,8.3,12,0.2],["Greek Yogurt Plain (170g)",100,17,6,0.7],["Yogurt Plain (1 cup)",149,8.5,11.4,8],["Cheddar Cheese (30g)",120,7,0.4,10],["Mozzarella (30g)",85,6.3,0.6,6.3],["Cottage Cheese Generic (100g)",98,11,3.4,4.3],["Butter Generic (1 tbsp)",102,0.1,0,11.5],["Olive Oil (1 tbsp)",119,0,0,13.5],["Peanut Butter (1 tbsp)",94,4,3,8],["Almonds (28g)",164,6,6,14],["Walnuts (28g)",185,4.3,3.9,18.5],["Broccoli (100g)",34,2.8,7,0.4],["Spinach (100g)",23,2.9,3.6,0.4],["Carrots (100g)",41,0.9,10,0.2],["Tomato (1 medium)",22,1.1,4.8,0.2],["Onion (1 medium)",44,1.2,10.3,0.1],["Avocado (whole)",240,3,12.8,22],["Apple Generic (medium)",95,0.5,25,0.3],["Banana Generic (medium)",105,1.3,27,0.4],["Orange Generic (medium)",62,1.2,15.4,0.2],["Strawberries (100g)",32,0.7,7.7,0.3],["Blueberries (100g)",57,0.7,14.5,0.3],["Lentils Cooked (1 cup)",230,17.9,40,0.8],["Chickpeas Cooked (1 cup)",269,14.5,45,4.2],["Black Beans Cooked (1 cup)",227,15.2,41,0.9],["Tofu (100g)",76,8,1.9,4.8],["Egg Large (1)",78,6.3,0.6,5.3],["Protein Powder (1 scoop)",120,24,3,1.5],["Protein Bar Generic",200,20,20,7],["Honey (1 tbsp)",64,0.1,17,0],["Pizza Slice Cheese",285,12,36,10],["French Fries Small",220,2.4,29,11],["Fried Chicken (1 piece)",320,22,10,21],["Sandwich Ham & Cheese",350,20,35,14],["Wrap Chicken",380,25,35,15],["Sushi Roll (8 pieces)",350,12,60,6],["Ramen Bowl",380,14,55,12],["Coffee Black",2,0.3,0,0],["Tea Black",2,0,0.7,0],["Soda Can",140,0,39,0],["Beer Generic (330ml)",150,1.6,13,0],["Wine Generic (150ml)",125,0.1,4,0],["Ice Cream Scoop",137,2.3,16,7],["Cookie (1)",150,1.5,20,7],["Croissant Generic (1)",230,5,26,12],["Blueberry Muffin",265,4,40,10],["Pancakes (2)",175,5,30,4],
+    ["Brie (30g)",95,5.9,0.1,7.9],["Camembert (30g)",93,5.9,0.1,7.4],["Gouda (30g)",114,7.1,0.6,9],["Edam (30g)",114,7.6,0.4,8.7],["Swiss/Emmental (30g)",121,8.1,1.5,9],["Parmesan Grated (1 tbsp/5g)",22,2,0.2,1.5],["Feta (30g)",75,4,1.1,6],["Halloumi (30g)",98,6.6,0.6,7.8],["Blue Cheese (30g)",100,6,0.7,8.1],["Ricotta (100g)",174,11.3,3,13],["Cream Cheese (1 tbsp/15g)",51,0.9,0.8,5.1],["Mascarpone (30g)",128,1.6,1,13.8],["Provolone (30g)",100,7.3,0.6,7.6],["Paneer (30g)",87,6.2,1.2,6.5],["Babybel (1 piece/20g)",63,4.5,0,4.9],["Burrata (100g)",320,17,3,25],
+    ["Grapefruit (1/2 medium)",52,1,13,0.2],["Cherries (100g)",63,1.1,16,0.2],["Plum (1 medium)",30,0.5,7.5,0.2],["Apricot (1 medium)",17,0.5,4,0.1],["Fig Fresh (1 medium)",37,0.4,10,0.1],["Pomegranate Seeds (100g)",83,1.7,19,1.2],["Papaya (100g)",43,0.5,11,0.3],["Cantaloupe/Melon (100g)",34,0.8,8.2,0.2],["Watermelon Chunk (1 cup)",46,0.9,11.6,0.2],["Nectarine (1 medium)",62,1.5,15,0.5],["Lychee (100g)",66,0.8,17,0.4],["Passion Fruit (1 medium)",17,0.4,4.2,0.1],["Coconut Meat Fresh (100g)",354,3.3,15.2,33.5],["Dried Apricots (30g)",76,1.1,17.7,0.1],["Prunes (30g)",68,0.6,18,0.1],["Raspberries (100g)",52,1.2,11.9,0.7],["Blackberries (100g)",43,1.4,9.6,0.5],["Pineapple Chunk (100g)",50,0.5,13.1,0.1],["Mango (100g)",60,0.8,15,0.4],["Kiwi Fruit (1 medium)",42,0.8,10.1,0.4]];
   var ACTIVITY_POOL = [
     ["back_biceps","Back / Biceps"],["chest_triceps","Chest / Triceps"],["shoulders_legs","Shoulders / Legs"],
     ["core","Core"],["stretch","Stretching"],["swimming","Swimming"],["running","Running"],["yoga","Yoga"],
@@ -779,10 +786,22 @@
   }
 
   // ---------- Search ----------
+  function setFoodQty(val){
+    val = Math.max(0.2, Math.round(val*10)/10);
+    document.getElementById('foodQty').value = val;
+    document.getElementById('foodQtyDisplay').textContent = val;
+  }
+  document.getElementById('qtyMinusBtn').addEventListener('click', function(){
+    setFoodQty(parseFloat(document.getElementById('foodQty').value) - 0.2);
+  });
+  document.getElementById('qtyPlusBtn').addEventListener('click', function(){
+    setFoodQty(parseFloat(document.getElementById('foodQty').value) + 0.2);
+  });
+
   function fillAddForm(f){
     document.getElementById('foodName').value = f[0];
     document.getElementById('foodCal').value = f[1];
-    document.getElementById('foodQty').value = 1;
+    setFoodQty(1);
     document.getElementById('foodProtein').value = f[2] ? f[2] : '';
     document.getElementById('foodCarbs').value = f[3] ? f[3] : '';
     document.getElementById('foodFat').value = f[4] ? f[4] : '';
@@ -891,7 +910,7 @@
     }
 
     var stepDates = [];
-    for (var si=13; si>=0; si--) { var sd=new Date(); sd.setDate(sd.getDate()-si); stepDates.push(sd.toISOString().slice(0,10)); }
+    for (var si=6; si>=0; si--) { var sd=new Date(); sd.setDate(sd.getDate()-si); stepDates.push(sd.toISOString().slice(0,10)); }
     var stepLabels = stepDates.map(function(d){ return fmtShortDate(d); });
     var stepData = stepDates.map(function(d){ return stepsLog[d] || 0; });
     var stepColors = stepData.map(function(v){ return v>=10000 ? (isDark ? '#3DDC84' : '#26824E') : (isDark ? '#8A7CF0' : '#6C5CE7'); });
@@ -1093,7 +1112,16 @@
     var errEl = document.getElementById('foodError');
     errEl.style.display = 'none';
     try {
-      var result = await plugin.scanBarcode({ hint: 17 }); // 17 = ALL formats
+      var result = await plugin.scanBarcode({
+        hint: 17, // ALL formats
+        scanInstructions: 'Point your camera at a barcode',
+        scanButton: false,
+        scanText: 'Scan',
+        cameraDirection: 1, // BACK
+        scanOrientation: 3, // ADAPTIVE
+        android: { scanningLibrary: 'mlkit' },
+        web: { showCameraSelection: false, scannerFPS: 10 }
+      });
       var barcode = result && result.ScanResult;
       if (!barcode) return;
       await lookupBarcodeAndFillForm(barcode);
@@ -1123,6 +1151,7 @@
       document.getElementById('foodCarbs').value = Math.round((n['carbohydrates_100g']||0)*10)/10;
       document.getElementById('foodFat').value = Math.round((n['fat_100g']||0)*10)/10;
       document.getElementById('foodQty').value = 1;
+      document.getElementById('foodQtyDisplay').textContent = '1';
       hintEl.style.display = 'block';
     } catch(e) {
       errEl.textContent = 'Could not look up that barcode. Check your connection and try again.';
@@ -1147,7 +1176,7 @@
       await saveSharedFood(name, cal, protein, carbs, fat);
     }
     document.getElementById('foodName').value=''; document.getElementById('foodCal').value='';
-    document.getElementById('foodQty').value=1; document.getElementById('foodProtein').value='';
+    setFoodQty(1); document.getElementById('foodProtein').value='';
     document.getElementById('foodCarbs').value=''; document.getElementById('foodFat').value='';
     document.getElementById('saveNewFood').checked=true;
     render();
@@ -1184,8 +1213,10 @@
   var tourEls = [];
 
   function clearTourHighlight(){
-    tourEls.forEach(function(el){ el.style.position=''; el.style.zIndex=''; el.style.boxShadow=''; el.style.borderRadius=''; });
+    tourEls.forEach(function(el){ el.style.position=''; el.style.zIndex=''; el.style.boxShadow=''; el.style.borderRadius=''; el.style.background=''; });
     tourEls = [];
+    var overlay = document.getElementById('tourOverlay');
+    if (overlay) overlay.remove();
   }
 
   function endTour(save){
@@ -1204,10 +1235,16 @@
     if (!target) { showTourStep(i+1); return; }
     target.scrollIntoView({ behavior:'smooth', block:'center' });
     setTimeout(function(){
+      var overlay = document.createElement('div');
+      overlay.id = 'tourOverlay';
+      overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9998;';
+      document.body.appendChild(overlay);
+
       target.style.position = 'relative';
-      target.style.zIndex = '10000';
-      target.style.boxShadow = '0 0 0 3px var(--accent), 0 0 0 2000px rgba(0,0,0,0.6)';
+      target.style.zIndex = '9999';
+      target.style.boxShadow = '0 0 0 3px var(--accent)';
       target.style.borderRadius = 'var(--radius)';
+      target.style.background = 'var(--surface)';
       tourEls = [target];
 
       var card = document.getElementById('tourCard');
