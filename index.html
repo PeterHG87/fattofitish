@@ -319,9 +319,11 @@
 <div class="row" style="margin-bottom:8px; align-items:center;">
   <input type="text" id="foodName" placeholder="Food name" style="flex:1;" />
   <input type="hidden" id="foodQty" value="1" />
-  <button id="qtyMinusBtn" style="width:36px; padding:0; flex-shrink:0;" aria-label="Decrease quantity">-</button>
-  <span id="foodQtyDisplay" style="min-width:36px; text-align:center; font-size:15px; font-weight:500;">1</span>
-  <button id="qtyPlusBtn" style="width:36px; padding:0; flex-shrink:0;" aria-label="Increase quantity">+</button>
+  <div style="display:flex; align-items:center; border:1px solid var(--accent); border-radius:var(--radius); flex-shrink:0; overflow:hidden;">
+    <button id="qtyMinusBtn" style="width:32px; height:38px; padding:0; border:none; border-radius:0; background:var(--surface);" aria-label="Decrease quantity">-</button>
+    <span id="foodQtyDisplay" style="min-width:30px; text-align:center; font-size:14px; font-weight:500; border-left:1px solid var(--accent); border-right:1px solid var(--accent); height:38px; line-height:38px;">1</span>
+    <button id="qtyPlusBtn" style="width:32px; height:38px; padding:0; border:none; border-radius:0; background:var(--surface);" aria-label="Increase quantity">+</button>
+  </div>
 </div>
 <div class="row" style="margin-bottom:8px;">
   <input type="number" id="foodCal" placeholder="kcal each" style="flex:1;" />
