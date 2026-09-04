@@ -205,21 +205,21 @@
       </select>
     </label>
     <div class="row" style="margin-bottom:8px;">
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalHeightLabel">Height (cm)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;" id="goalHeightLabel">Height (cm)
         <input type="number" id="goalHeight" style="width:100%; margin-top:4px;" />
       </label>
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Age
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;">Age
         <input type="number" id="goalAge" style="width:100%; margin-top:4px;" />
       </label>
     </div>
     <div class="row" style="margin-bottom:8px;">
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Sex
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;">Sex
         <select id="goalSex" style="width:100%; margin-top:4px;">
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
       </label>
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;">Activity level
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;">Activity level
         <select id="goalActivity" style="width:100%; margin-top:4px;">
           <option value="1.2">Sedentary (desk job, little exercise)</option>
           <option value="1.375">Light (exercise 1-3 days/week)</option>
@@ -230,10 +230,10 @@
       </label>
     </div>
     <div class="row" style="margin-bottom:8px;">
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalWeightLabel">Goal weight (kg)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;" id="goalWeightLabel">Goal weight (kg)
         <input type="text" inputmode="decimal" id="goalWeight" style="width:100%; margin-top:4px;" />
       </label>
-      <label style="font-size:13px; color:var(--text-secondary); flex:1;" id="goalRateLabel">Target rate (kg/week)
+      <label style="font-size:13px; color:var(--text-secondary); flex:1; min-width:0;" id="goalRateLabel">Target rate (kg/week)
         <input type="text" inputmode="decimal" id="goalRate" style="width:100%; margin-top:4px;" />
       </label>
     </div>
@@ -330,9 +330,9 @@
 </div>
 <p style="font-size:12px; color:var(--text-secondary); margin:0 0 6px;">Macros (grams per unit)</p>
 <div class="row" style="margin-bottom:8px;">
-  <input type="number" id="foodProtein" placeholder="Protein" style="flex:1;" />
-  <input type="number" id="foodCarbs" placeholder="Carbs" style="flex:1;" />
-  <input type="number" id="foodFat" placeholder="Fat" style="flex:1;" />
+  <input type="number" id="foodProtein" placeholder="Protein" style="flex:1; min-width:0;" />
+  <input type="number" id="foodCarbs" placeholder="Carbs" style="flex:1; min-width:0;" />
+  <input type="number" id="foodFat" placeholder="Fat" style="flex:1; min-width:0;" />
 </div>
 <button id="addFoodBtn" style="width:100%; margin-bottom:8px;">+ Add</button>
 <label class="checkbox-row"><input type="checkbox" id="saveNewFood" checked /> Save this food to the shared list (visible to everyone)</label>
