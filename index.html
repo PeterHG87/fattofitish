@@ -57,7 +57,7 @@
   .checkbox-row { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); margin:8px 0; }
   .checkbox-row input { width:auto; height:auto; }
   .bar-row { margin-bottom:10px; }
-  .bar-label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+  .bar-label { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; font-size:13px; margin-bottom:4px; }
   .bar-track { height:6px; background:var(--surface-1); border-radius:3px; overflow:hidden; border:1px solid var(--border); }
   .bar-fill { height:100%; background:var(--good); }
   .tabs { display:flex; gap:8px; margin-bottom:1rem; }
@@ -499,9 +499,11 @@
       }
     } catch(e){}
   }
-  async function saveSharedFood(name, cal, protein, carbs, fat){
+  async function saveSharedFood(name, cal, protein, carbs, fat, barcode){
     try {
-      await sb.from('shared_foods').upsert({ name:name, cal:cal, protein:protein, carbs:carbs, fat:fat, added_by:user.id, updated_at:new Date().toISOString() });
+      var row = { name:name, cal:cal, protein:protein, carbs:carbs, fat:fat, added_by:user.id, updated_at:new Date().toISOString() };
+      if (barcode) row.barcode = barcode;
+      await sb.from('shared_foods').upsert(row);
       var lower = name.toLowerCase();
       var idx = sharedFoods.findIndex(function(f){ return f[0].toLowerCase()===lower; });
       var entry=[name,cal,protein,carbs,fat];
@@ -1132,14 +1134,36 @@
     }
   }
 
+  var lastScannedBarcode = null;
+
   async function lookupBarcodeAndFillForm(barcode){
     var errEl = document.getElementById('foodError');
     var hintEl = document.getElementById('barcodeHint');
+    lastScannedBarcode = barcode;
+
+    // Check our own shared database first -- instant, and covers anything
+    // anyone has ever scanned before, regardless of Open Food Facts coverage.
+    try {
+      var own = await sb.from('shared_foods').select('name,cal,protein,carbs,fat').eq('barcode', barcode).maybeSingle();
+      if (own.data) {
+        document.getElementById('foodName').value = own.data.name;
+        document.getElementById('foodCal').value = own.data.cal;
+        document.getElementById('foodProtein').value = own.data.protein || 0;
+        document.getElementById('foodCarbs').value = own.data.carbs || 0;
+        document.getElementById('foodFat').value = own.data.fat || 0;
+        document.getElementById('foodQty').value = 1;
+        document.getElementById('foodQtyDisplay').textContent = '1';
+        hintEl.style.display = 'none';
+        errEl.style.display = 'none';
+        return;
+      }
+    } catch(e){}
+
     try {
       var res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(barcode) + '.json');
       var data = await res.json();
       if (data.status !== 1 || !data.product) {
-        errEl.textContent = 'No food found for that barcode. You can still add it manually below.';
+        errEl.textContent = 'No food found for that barcode. Fill it in below and save -- it\u2019ll be recognized instantly next time.';
         errEl.style.display = 'block';
         hintEl.style.display = 'none';
         return;
@@ -1147,19 +1171,28 @@
       var p = data.product;
       var n = p.nutriments || {};
       var name = p.product_name || p.generic_name || ('Scanned item ' + barcode);
+      var cal = Math.round(n['energy-kcal_100g'] || 0);
+      var protein = Math.round((n['proteins_100g']||0)*10)/10;
+      var carbs = Math.round((n['carbohydrates_100g']||0)*10)/10;
+      var fat = Math.round((n['fat_100g']||0)*10)/10;
       document.getElementById('foodName').value = name;
-      document.getElementById('foodCal').value = Math.round(n['energy-kcal_100g'] || 0);
-      document.getElementById('foodProtein').value = Math.round((n['proteins_100g']||0)*10)/10;
-      document.getElementById('foodCarbs').value = Math.round((n['carbohydrates_100g']||0)*10)/10;
-      document.getElementById('foodFat').value = Math.round((n['fat_100g']||0)*10)/10;
+      document.getElementById('foodCal').value = cal;
+      document.getElementById('foodProtein').value = protein;
+      document.getElementById('foodCarbs').value = carbs;
+      document.getElementById('foodFat').value = fat;
       document.getElementById('foodQty').value = 1;
       document.getElementById('foodQtyDisplay').textContent = '1';
       hintEl.style.display = 'block';
+      // Cache it into our own database too, so future scans (by anyone) are
+      // instant and don't depend on Open Food Facts being available.
+      saveSharedFood(name, cal, protein, carbs, fat, barcode);
     } catch(e) {
       errEl.textContent = 'Could not look up that barcode. Check your connection and try again.';
       errEl.style.display = 'block';
     }
   }
+
+  document.getElementById('foodName').addEventListener('input', function(){ lastScannedBarcode = null; });
 
   document.getElementById('addFoodBtn').addEventListener('click', async function(){
     var name=document.getElementById('foodName').value.trim();
@@ -1175,8 +1208,9 @@
     foodLog[today].push({name:name,cal:cal,qty:qty,protein:protein,carbs:carbs,fat:fat});
     await kvSet('food-log', foodLog);
     if (document.getElementById('saveNewFood').checked) {
-      await saveSharedFood(name, cal, protein, carbs, fat);
+      await saveSharedFood(name, cal, protein, carbs, fat, lastScannedBarcode);
     }
+    lastScannedBarcode = null;
     document.getElementById('foodName').value=''; document.getElementById('foodCal').value='';
     setFoodQty(1); document.getElementById('foodProtein').value='';
     document.getElementById('foodCarbs').value=''; document.getElementById('foodFat').value='';
@@ -1208,7 +1242,7 @@
     { id: 'tourRetroPanel', title: 'Log for any day this week', desc: 'Pick a date here to log or fix food, weight, steps, or training for up to the past 7 days, not just today.' },
     { id: 'tourWeightRow', title: 'Log your weight', desc: 'Enter a weigh-in here. It gets added to the chart above, dated to whatever day you picked above.' },
     { id: 'tourSearchFood', title: 'Search or add food', desc: 'Search the shared food list here, or add your own below. Anything you save is visible to everyone using this app.' },
-    { id: 'stepsHeading', title: 'Track your steps', desc: 'Log steps for the selected day. The chart below shows your last 14 days against the 10k target.' },
+    { id: 'stepsHeading', title: 'Track your steps', desc: 'Log steps for the selected day. The chart below shows your last 7 days against the 10k target.' },
     { id: 'trainingHeading', title: 'Training for the week', desc: 'Log a session type here. Bars turn green once you hit that activity target for the week. Tap Add to track a different activity.' }
   ];
   var tourStep = 0;
