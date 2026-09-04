@@ -922,7 +922,7 @@
     else {
       var ctxSteps = document.getElementById('stepsChart').getContext('2d');
       stepsChart = new Chart(ctxSteps, { type:'bar', data:{ labels:stepLabels, datasets:[
-        { data:stepData, backgroundColor:stepColors, borderRadius:3 },
+        { data:stepData, backgroundColor:stepColors, borderRadius:16, borderSkipped:false },
         { type:'line', data:stepDates.map(function(){return 10000;}), borderColor:'rgba(128,128,128,0.4)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false }
       ]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ticks:{font:{size:10},color:tickColor},grid:{color:'rgba(128,128,128,0.15)'}}, x:{ticks:{font:{size:9},color:tickColor,maxRotation:0,autoSkip:true,maxTicksLimit:7},grid:{display:false}} } } });
     }
