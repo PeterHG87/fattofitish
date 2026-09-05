@@ -280,6 +280,25 @@
   <div style="position:relative; height:140px; margin-bottom:1.5rem;"><canvas id="calTrendChart"></canvas></div>
 </div>
 
+<h3>Summary for a date range</h3>
+<div class="panel" style="margin-bottom:1rem;">
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+    <button class="rangePresetBtn" data-days="7" style="flex:1; font-size:12px; height:32px; padding:0 4px;">7 days</button>
+    <button class="rangePresetBtn" data-days="10" style="flex:1; font-size:12px; height:32px; padding:0 4px;">10 days</button>
+    <button class="rangePresetBtn" data-days="14" style="flex:1; font-size:12px; height:32px; padding:0 4px;">2 weeks</button>
+    <button class="rangePresetBtn" data-days="30" style="flex:1; font-size:12px; height:32px; padding:0 4px;">30 days</button>
+  </div>
+  <div class="row" style="margin-bottom:10px; align-items:center;">
+    <label style="font-size:12px; color:var(--text-secondary); flex:1; min-width:0;">From
+      <input type="date" id="summaryFrom" style="width:100%; margin-top:2px;" />
+    </label>
+    <label style="font-size:12px; color:var(--text-secondary); flex:1; min-width:0;">To
+      <input type="date" id="summaryTo" style="width:100%; margin-top:2px;" />
+    </label>
+  </div>
+  <div id="summaryResults" style="font-size:13px; color:var(--text-secondary);">Pick a range above to see a summary.</div>
+</div>
+
 <h3 style="display:flex; align-items:center; gap:8px;">Macros today <span id="macrosOnTrack" style="display:none; font-size:12px; font-weight:500; color:var(--text-success); background:var(--surface-1); border:1px solid var(--good); border-radius:999px; padding:2px 10px;">On track</span></h3>
 <p style="font-size:12px; color:var(--text-secondary); margin:0 0 10px;">2g/kg protein, 30% fat, rest carbs — edit any to override</p>
 <div class="panel" style="margin-bottom:1rem;">
@@ -318,10 +337,9 @@
 <h3 id="addFoodHeading" style="margin-top:1rem;">Add to today's log</h3>
 <div class="row" style="margin-bottom:8px; align-items:center;">
   <input type="text" id="foodName" placeholder="Food name" style="flex:1;" />
-  <input type="hidden" id="foodQty" value="1" />
   <div style="display:flex; align-items:center; border:1px solid var(--accent); border-radius:var(--radius); flex-shrink:0; overflow:hidden;">
     <button id="qtyMinusBtn" style="width:32px; height:38px; padding:0; border:none; border-radius:0; background:var(--surface);" aria-label="Decrease quantity">-</button>
-    <span id="foodQtyDisplay" style="min-width:30px; text-align:center; font-size:14px; font-weight:500; border-left:1px solid var(--accent); border-right:1px solid var(--accent); height:38px; line-height:38px;">1</span>
+    <input type="text" inputmode="decimal" id="foodQty" value="1" style="width:44px; height:38px; text-align:center; font-size:14px; font-weight:500; border:none; border-left:1px solid var(--accent); border-right:1px solid var(--accent); border-radius:0; padding:0;" aria-label="Quantity - tap to type an exact amount" />
     <button id="qtyPlusBtn" style="width:32px; height:38px; padding:0; border:none; border-radius:0; background:var(--surface);" aria-label="Increase quantity">+</button>
   </div>
 </div>
@@ -478,6 +496,77 @@
     await kvSet('recap-dismissed-week', thisWeekStart);
     document.getElementById('recapCard').style.display = 'none';
   });
+
+  // ---------- Custom date-range summary ----------
+  function dateRangeArray(fromStr, toStr){
+    var out = [];
+    var d = new Date(fromStr+'T00:00:00');
+    var end = new Date(toStr+'T00:00:00');
+    while (d <= end) { out.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+    return out;
+  }
+
+  function renderRangeSummary(fromStr, toStr){
+    var resultsEl = document.getElementById('summaryResults');
+    if (!fromStr || !toStr || fromStr > toStr) {
+      resultsEl.textContent = 'Pick a valid range above to see a summary.';
+      return;
+    }
+    var dates = dateRangeArray(fromStr, toStr);
+    var totalCal = 0, loggedCalDays = 0, totalSteps = 0, loggedStepDays = 0, sessionCount = 0;
+    dates.forEach(function(d){
+      var items = foodLog[d] || [];
+      var sum = items.reduce(function(a,it){return a+it.cal*it.qty;},0);
+      if (sum > 0) { totalCal += sum; loggedCalDays++; }
+      if (stepsLog[d]) { totalSteps += stepsLog[d]; loggedStepDays++; }
+    });
+    var rangeStart = new Date(fromStr+'T00:00:00');
+    var rangeEnd = new Date(toStr+'T23:59:59');
+    sessionLog.forEach(function(s){
+      var sd = new Date(s.date);
+      if (sd >= rangeStart && sd <= rangeEnd) sessionCount++;
+    });
+
+    // Weight change: nearest logged entry at/after range start, vs nearest at/before range end.
+    var weightChangeText = '';
+    var inRange = weightLog.filter(function(e){ var d = new Date(e.date); return d >= rangeStart && d <= rangeEnd; });
+    if (inRange.length >= 2) {
+      var first = inRange[0].kg, last = inRange[inRange.length-1].kg;
+      var delta = last - first;
+      var deltaDisp = toDisplayWeight(Math.abs(delta)).toFixed(1);
+      weightChangeText = (delta<0 ? '\u2193 ' : delta>0 ? '\u2191 ' : '') + deltaDisp + ' ' + weightUnitLabel() + ' over this range<br>';
+    }
+
+    var avgCal = loggedCalDays ? Math.round(totalCal/loggedCalDays) : null;
+    var avgSteps = loggedStepDays ? Math.round(totalSteps/loggedStepDays) : null;
+    var dayWord = dates.length === 1 ? 'day' : 'days';
+
+    resultsEl.innerHTML =
+      '<b style="color:var(--text-primary);">' + dates.length + '</b> ' + dayWord + ' (' + fmtShortDate(fromStr) + ' \u2013 ' + fmtShortDate(toStr) + ')<br>' +
+      (avgCal!=null ? 'Avg calories: <b style="color:var(--text-primary);">'+avgCal+' kcal/day</b> (' + loggedCalDays + ' logged)<br>' : 'No calories logged in this range<br>') +
+      (avgSteps!=null ? 'Avg steps: <b style="color:var(--text-primary);">'+avgSteps+'/day</b> (' + loggedStepDays + ' logged)<br>' : 'No steps logged in this range<br>') +
+      'Training sessions: <b style="color:var(--text-primary);">' + sessionCount + '</b><br>' +
+      weightChangeText;
+  }
+
+  document.querySelectorAll('.rangePresetBtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var days = parseInt(btn.getAttribute('data-days'));
+      var to = todayStr();
+      var fromD = new Date(); fromD.setDate(fromD.getDate() - (days-1));
+      var from = fromD.toISOString().slice(0,10);
+      document.getElementById('summaryFrom').value = from;
+      document.getElementById('summaryTo').value = to;
+      renderRangeSummary(from, to);
+    });
+  });
+  document.getElementById('summaryFrom').addEventListener('change', function(){
+    renderRangeSummary(this.value, document.getElementById('summaryTo').value);
+  });
+  document.getElementById('summaryTo').addEventListener('change', function(){
+    renderRangeSummary(document.getElementById('summaryFrom').value, this.value);
+  });
+
   function dayNamesForStart(){
     var ALL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var startDay = (profile && profile.week_start_day != null) ? profile.week_start_day : 1;
@@ -791,15 +880,18 @@
 
   // ---------- Search ----------
   function setFoodQty(val){
-    val = Math.max(0.2, Math.round(val*10)/10);
+    val = Math.max(0.1, Math.round(val*10)/10);
     document.getElementById('foodQty').value = val;
-    document.getElementById('foodQtyDisplay').textContent = val;
   }
   document.getElementById('qtyMinusBtn').addEventListener('click', function(){
-    setFoodQty(parseFloat(document.getElementById('foodQty').value) - 0.2);
+    setFoodQty(parseDecimal(document.getElementById('foodQty').value) - 0.5);
   });
   document.getElementById('qtyPlusBtn').addEventListener('click', function(){
-    setFoodQty(parseFloat(document.getElementById('foodQty').value) + 0.2);
+    setFoodQty(parseDecimal(document.getElementById('foodQty').value) + 0.5);
+  });
+  document.getElementById('foodQty').addEventListener('blur', function(){
+    var n = parseDecimal(this.value);
+    setFoodQty(isNaN(n) ? 1 : n);
   });
 
   function fillAddForm(f){
@@ -1152,7 +1244,6 @@
         document.getElementById('foodCarbs').value = own.data.carbs || 0;
         document.getElementById('foodFat').value = own.data.fat || 0;
         document.getElementById('foodQty').value = 1;
-        document.getElementById('foodQtyDisplay').textContent = '1';
         hintEl.style.display = 'none';
         errEl.style.display = 'none';
         return;
@@ -1181,7 +1272,6 @@
       document.getElementById('foodCarbs').value = carbs;
       document.getElementById('foodFat').value = fat;
       document.getElementById('foodQty').value = 1;
-      document.getElementById('foodQtyDisplay').textContent = '1';
       hintEl.style.display = 'block';
       // Cache it into our own database too, so future scans (by anyone) are
       // instant and don't depend on Open Food Facts being available.
@@ -1242,8 +1332,11 @@
     { id: 'tourRetroPanel', title: 'Log for any day this week', desc: 'Pick a date here to log or fix food, weight, steps, or training for up to the past 7 days, not just today.' },
     { id: 'tourWeightRow', title: 'Log your weight', desc: 'Enter a weigh-in here. It gets added to the chart above, dated to whatever day you picked above.' },
     { id: 'tourSearchFood', title: 'Search or add food', desc: 'Search the shared food list here, or add your own below. Anything you save is visible to everyone using this app.' },
+    { id: 'scanBarcodeBtn', title: 'Scan a barcode', desc: 'Tap here to scan a product with your camera. If it is in our shared list already, or on Open Food Facts, it fills in instantly. If not, fill it in once and it is remembered for next time.' },
+    { id: 'qtyMinusBtn', title: 'Adjust the quantity', desc: 'Tap - or + to move in halves. Or tap the number itself to type an exact amount, like 0.33 or 1.75.' },
     { id: 'stepsHeading', title: 'Track your steps', desc: 'Log steps for the selected day. The chart below shows your last 7 days against the 10k target.' },
-    { id: 'trainingHeading', title: 'Training for the week', desc: 'Log a session type here. Bars turn green once you hit that activity target for the week. Tap Add to track a different activity.' }
+    { id: 'trainingHeading', title: 'Training for the week', desc: 'Log a session type here. Bars turn green once you hit that activity target for the week. Tap Add to track a different activity.' },
+    { id: 'toggleGoalsBtn', title: 'Edit goals and units', desc: 'Update your goals here any time, including switching between metric (kg/cm) and imperial (lb/in).' }
   ];
   var tourStep = 0;
   var tourEls = [];
