@@ -63,11 +63,11 @@
   .tabs { display:flex; gap:8px; margin-bottom:1rem; }
   .tabs button { flex:1; }
   .tabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-  details#todayLogDetails > summary { list-style:none; }
-  details#todayLogDetails > summary::-webkit-details-marker { display:none; }
-  details#todayLogDetails > summary { background:var(--surface-1); border:1px solid var(--accent); border-radius:var(--radius); padding:10px 14px; }
-  details#todayLogDetails > summary svg { transition:transform 0.15s; flex-shrink:0; }
-  details#todayLogDetails[open] > summary svg { transform:rotate(180deg); }
+  details.collapsible > summary { list-style:none; }
+  details.collapsible > summary::-webkit-details-marker { display:none; }
+  details.collapsible > summary { background:var(--surface-1); border:1px solid var(--accent); border-radius:var(--radius); padding:10px 14px; }
+  details.collapsible > summary svg { transition:transform 0.15s; flex-shrink:0; }
+  details.collapsible[open] > summary svg { transform:rotate(180deg); }
 </style>
 </head>
 <body>
@@ -280,8 +280,9 @@
   <div style="position:relative; height:140px; margin-bottom:1.5rem;"><canvas id="calTrendChart"></canvas></div>
 </div>
 
-<h3>Summary for a date range</h3>
-<div class="panel" style="margin-bottom:1rem;">
+<details id="summaryDetails" class="collapsible" style="margin-bottom:1rem;">
+  <summary style="cursor:pointer; font-size:14px; font-weight:500; color:var(--text-primary); display:flex; align-items:center; justify-content:space-between; gap:6px;"><span>Summary</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+  <div class="panel" style="margin-top:8px;">
   <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
     <button class="rangePresetBtn" data-days="7" style="flex:1; font-size:12px; height:32px; padding:0 4px;">7 days</button>
     <button class="rangePresetBtn" data-days="10" style="flex:1; font-size:12px; height:32px; padding:0 4px;">10 days</button>
@@ -297,7 +298,8 @@
     </label>
   </div>
   <div id="summaryResults" style="font-size:13px; color:var(--text-secondary);">Pick a range above to see a summary.</div>
-</div>
+  </div>
+</details>
 
 <h3 style="display:flex; align-items:center; gap:8px;">Macros today <span id="macrosOnTrack" style="display:none; font-size:12px; font-weight:500; color:var(--text-success); background:var(--surface-1); border:1px solid var(--good); border-radius:999px; padding:2px 10px;">On track</span></h3>
 <p style="font-size:12px; color:var(--text-secondary); margin:0 0 10px;">2g/kg protein, 30% fat, rest carbs — edit any to override</p>
@@ -355,7 +357,7 @@
 <button id="addFoodBtn" style="width:100%; margin-bottom:8px;">+ Add</button>
 <label class="checkbox-row"><input type="checkbox" id="saveNewFood" checked /> Save this food to the shared list (visible to everyone)</label>
 <p id="foodError" class="err" style="display:none;">Enter a food name and calories</p>
-<details id="todayLogDetails" style="margin-bottom:6px;">
+<details id="todayLogDetails" class="collapsible" style="margin-bottom:6px;">
   <summary style="cursor:pointer; font-size:14px; font-weight:500; color:var(--text-primary); display:flex; align-items:center; justify-content:space-between; gap:6px;"><span style="display:flex; align-items:center; gap:6px;"><span id="foodLogHeading">Food today</span> (<span id="todayLogCount">0</span>)</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
   <div id="todayLog" style="padding-top:4px;"></div>
 </details>
